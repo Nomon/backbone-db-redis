@@ -24,15 +24,6 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       return redis.createClient(this.redis.port, this.redis.host);
     }
   },
-  _getKey: function (model, options) {
-    var key;
-    if(model.url && typeof model.url == "function") {
-      key = model.url();
-    } else if(options.url) {
-      key = typeof options.url == "function" ? options.url() : options.url;
-    }
-    return this.name + ':' + key;
-  },
   findAll: function(model, options, callback) {
     debug('findAll');
     options = options || {};
