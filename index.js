@@ -36,11 +36,18 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   findAll: function(model, options, callback) {
     debug('findAll');
     options = options || {};
+    var collectionKey = this._getKey(model, options);
+    var modelKey = this._getKey(new model.model(), options);
     var start = options.start || "0";
     var end = options.end || "-1";
     var key = this._getKey(model, {});
-    debug("redis sort "+key+ ' BY nosort GET '+key+':*');
-    this.redis.sort(key+ ' BY nosort GET '+key+':*', function(err, res) {
+    debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
+    this.redis.sort(key, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
+      if(res) {
+        res = res.map(function(data) {
+          return JSON.parse(data);
+        });
+      }
       callback(err, res);
     });
   },
@@ -86,7 +93,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       if(model.collection) {
         debug('adding model '+model.url()+" to "+model.collection.url());
         var setKey = self._getKey(model.collection, {});
-        var modelKey = self._getKey(model, {});
+        var modelKey = model.get(model.idAttribute);
         self.redis.zadd(setKey, Date.now(),modelKey, function(err, res) {
           callback(err, model.toJSON());
         });
