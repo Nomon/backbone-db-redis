@@ -18,6 +18,12 @@ Backbone.RedisDb = function(name, client) {
 Backbone.RedisDb.sync = Db.sync
 
 _.extend(Backbone.RedisDb.prototype, Db.prototype, {
+  createClient: function() {
+    var self = this;
+    if(this.redis) {
+      return redis.createClient(this.redis.port, this.redis.host);
+    }
+  },
   _getKey: function (model, options) {
     var key;
     if(model.url && typeof model.url == "function") {
@@ -30,12 +36,11 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   findAll: function(model, options, callback) {
     debug('findAll');
     options = options || {};
-    var key= this._getKey(model, options)
     var start = options.start || "0";
     var end = options.end || "-1";
+    var key = this._getKey(model, {});
     debug("redis sort "+key+ ' BY nosort GET '+key+':*');
     this.redis.sort(key+ ' BY nosort GET '+key+':*', function(err, res) {
-      console.log('Sort got ',res);
       callback(err, res);
     });
   },
@@ -52,41 +57,37 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     var self = this;
     var key = this._getKey(model, options);
     debug('Create '+key);
-    console.log("create",model.toJSON());
-    if (!model.id) {
+    if (model.isNew()) {
       self.createId(model, options, function(err, id) {
         if(err || !id) {
           return callback(err);
         }
-        key += id;
         model.set(model.idAttribute, id);
-        self.redis.set(key, JSON.stringify(model.toJSON()), function(err, res) {
-          callback(err, model.toJSON())
-        });
+        self.update(model, options, callback);
       });
     } else {
-      self.redis.set(key, JSON.stringify(model.toJSON()), function(err, res) {
-        callback(err, model.toJSON())
-      });
+      self.update(model, options, callback);
     }
   },
   createId: function(model, options, callback) {
     var key = this._getKey(model, options);
-    key += 'ids';
-    this.redis.incr(key, 1, callback);
+    key += ':ids';
+    this.redis.incr(key, callback);
   },
   update: function(model, options, callback) {
     var key = this._getKey(model, options);
     var self = this;
+    debug('update: '+key);
     if(model.isNew()) {
       return this.create(model, options, callback);
     }
-    debug('update: '+key);
-    console.log(model);
+
     this.redis.set(key, JSON.stringify(model), function(err, res) {
       if(model.collection) {
-        debug('adding model to '+model.url()+" to "+model.collection.url());
-        self.redis.sadd(model.collection.url(), model.url(), function(err, res) {
+        debug('adding model '+model.url()+" to "+model.collection.url());
+        var setKey = self._getKey(model.collection, {});
+        var modelKey = self._getKey(model, {});
+        self.redis.zadd(setKey, Date.now(),modelKey, function(err, res) {
           callback(err, model.toJSON());
         });
       } else {

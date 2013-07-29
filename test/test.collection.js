@@ -33,22 +33,36 @@ var testCol = new MyCollection();
 describe('RedisDB', function() {
   describe('#Collection', function() {
     it('should be able to create', function(t) {
-      var m = testCol.create({id:1,"id_check":1});
-      console.log(m);
-      m.save().done(function() {
-        assert(m.get('id_check') == testCol.at(0).get('id_check'));
-        var m2 = new MyModel({id:1});
-        m2.fetch().done(function() {
-          assert(m.get('id_check') == m2.get('id_check'));
-          t();
+      testCol.create({"id_check":1},{ wait: true }).done(function(m) {
+          assert(m.get('id_check') == testCol.at(0).get('id_check'));
+          var m2 = new MyModel({id:1});
+          m2.fetch().done(function() {
+            assert(m.get('id_check') == m2.get('id_check'));
+            t();
+          });
+        }).fail(function(err) {
+          throw err;
         });
-      });
     });
     it('should save & loadits member urls to its set', function(t) {
       var a = new MyCollection();
       a.fetch().done(function(c, a) {
         console.log(c, a);
         //assert(c.at(0) != null);
+        t();
+      });
+    });
+    it('should have deferred .create', function(t) {
+      var a = new MyCollection();
+      a.create({data:"xyz"}).done(function(m) {
+        assert(m.get("data") == "xyz");
+        t();
+      });
+    });
+
+    it('should have deferred .fetch', function(t) {
+      var a = new MyCollection();
+      a.fetch().done(function() {
         t();
       });
     });
