@@ -25,7 +25,6 @@ describe('RedisDB', function() {
       var m = new MyModel({id:1, "asd":"das"});
       m.db = store;
       m.save().done(function() {
-        console.log("asd");
         var m2 = new MyModel({id:1});
         m2.fetch().done(function() {
           assert.equal(m2.get("asd"),"das");

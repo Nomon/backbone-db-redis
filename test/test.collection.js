@@ -47,7 +47,6 @@ describe('RedisDB', function() {
     it('should save & loadits member urls to its set', function(t) {
       var a = new MyCollection();
       a.fetch().done(function(c, a) {
-        console.log(c, a);
         //assert(c.at(0) != null);
         t();
       });

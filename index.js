@@ -25,22 +25,30 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     }
   },
   findAll: function(model, options, callback) {
-    debug('findAll');
+    debug('findAll '+model.url());
     options = options || {};
     var collectionKey = this._getKey(model, options);
-    var modelKey = this._getKey(new model.model(), options);
-    var start = options.start || "0";
-    var end = options.end || "-1";
-    var key = this._getKey(model, {});
-    debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
-    this.redis.sort(key, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
-      if(res) {
-        res = res.map(function(data) {
-          return JSON.parse(data);
-        });
-      }
-      callback(err, res);
-    });
+    if(model.model) {
+      var m = new model.model();
+      var modelKey = this._getKey(m, {});
+      var start = options.start || "0";
+      var end = options.end || "-1";
+      var key = this._getKey(model, {});
+      debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
+      this.redis.sort(key, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
+        if(res) {
+          res = res.map(function(data) {
+            return data && JSON.parse(data);
+          });
+        }
+        callback(err, res);
+      });
+    } else {
+      this.redis.get(collectionKey, function(err, data) {
+        data = data && JSON.parse(data);
+        callback(err, data);
+      });
+    }
   },
   find: function(model, options, callback) {
     var key = this._getKey(model, options);
@@ -82,9 +90,10 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
 
     this.redis.set(key, JSON.stringify(model), function(err, res) {
       if(model.collection) {
-        debug('adding model '+model.url()+" to "+model.collection.url());
+        console.log(model.collection);
         var setKey = self._getKey(model.collection, {});
         var modelKey = model.get(model.idAttribute);
+        debug('adding model '+modelKey+" to "+setKey);
         self.redis.zadd(setKey, Date.now(),modelKey, function(err, res) {
           callback(err, model.toJSON());
         });
