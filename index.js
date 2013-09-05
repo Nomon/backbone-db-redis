@@ -35,7 +35,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       var end = options.end || "-1";
       var key = this._getKey(model, {});
       debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
-      this.redis.sort(key, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
+      this.redis.sort(collectionKey, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
         if(res) {
           res = res.map(function(data) {
             return data && JSON.parse(data);
