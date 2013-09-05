@@ -1,56 +1,110 @@
 var _ = require('underscore')
   , Backbone = require('backbone')
   , Db = require('backbone-db')
-  , redis = require('redis');
+  , redis = require('redis')
+  , debug = require('debug')('backbone-db-redis');
 
-/**
- * small redis string k=>v implementation
- */
 
-function RedisDb(name) {
-  this.name = name;
-}
 
-RedisDb.prototype.getItem = function(key, cb) {
-  var client = exports.createClient();
-  client.get(this.name+key, cb);
+Backbone.RedisDb = function(name, client) {
+  this.name = name || "";
+  this.redis = client;
+  if(!this.redis) {
+    debug('created default client');
+    this.redis = redis.createClient();
+  }
 };
 
-RedisDb.prototype.setItem = function(key, value, cb) {
-  var client = exports.createClient();
-  client.set(this.name+key, cb);
-};
+Backbone.RedisDb.sync = Db.sync
 
-RedisDb.prototype.removeItem = function(key, cb) {
-  var client = exports.createClient();
-  client.del(this.name+key, cb);
-};
-
-/**
- * findAll backend
- */
-RedisDb.prototype.findAll = function() {
-  return _.chain(this.records)
-    .map(function(id){
-      var data = this.store().getItem(this.name+':'+id).done(function(data) {
-        return data && JSON.parse(data);
+_.extend(Backbone.RedisDb.prototype, Db.prototype, {
+  createClient: function() {
+    var self = this;
+    if(this.redis) {
+      return redis.createClient(this.redis.port, this.redis.host);
+    }
+  },
+  findAll: function(model, options, callback) {
+    debug('findAll '+model.url());
+    options = options || {};
+    var collectionKey = this._getKey(model, options);
+    if(model.model) {
+      var m = new model.model();
+      var modelKey = this._getKey(m, {});
+      var start = options.start || "0";
+      var end = options.end || "-1";
+      var key = this._getKey(model, {});
+      debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
+      this.redis.sort(collectionKey, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
+        if(res) {
+          res = res.map(function(data) {
+            return data && JSON.parse(data);
+          });
+        }
+        callback(err, res);
       });
-    }, this)
-    .compact()
-    .value();
-}
+    } else {
+      this.redis.get(collectionKey, function(err, data) {
+        data = data && JSON.parse(data);
+        callback(err, data);
+      });
+    }
+  },
+  find: function(model, options, callback) {
+    var key = this._getKey(model, options);
 
-var redisDb = new RedisDb();
+    debug('find: '+key);
+    this.redis.get(key, function(err, data) {
+      data = data && JSON.parse(data);
+      callback(err, data);
+    });
+  },
+  create: function(model, options, callback) {
+    var self = this;
+    var key = this._getKey(model, options);
+    debug('Create '+key);
+    if (model.isNew()) {
+      self.createId(model, options, function(err, id) {
+        if(err || !id) {
+          return callback(err);
+        }
+        model.set(model.idAttribute, id);
+        self.update(model, options, callback);
+      });
+    } else {
+      self.update(model, options, callback);
+    }
+  },
+  createId: function(model, options, callback) {
+    var key = this._getKey(model, options);
+    key += ':ids';
+    this.redis.incr(key, callback);
+  },
+  update: function(model, options, callback) {
+    var key = this._getKey(model, options);
+    var self = this;
+    debug('update: '+key);
+    if(model.isNew()) {
+      return this.create(model, options, callback);
+    }
 
-_.extend(Db, {
- store: function() {
-   return redisDb;
- }
+    this.redis.set(key, JSON.stringify(model), function(err, res) {
+      if(model.collection) {
+        console.log(model.collection);
+        var setKey = self._getKey(model.collection, {});
+        var modelKey = model.get(model.idAttribute);
+        debug('adding model '+modelKey+" to "+setKey);
+        self.redis.zadd(setKey, Date.now(),modelKey, function(err, res) {
+          callback(err, model.toJSON());
+        });
+      } else {
+        callback(err, model.toJSON());
+      }
+    });
+  }
 });
 
 
-// Override for custom client
-//exports.createClient = function() {
- // return redis.createClient();
-//};
-module.exports = RedisDb;
+module.exports = Backbone.RedisDb;
+
+
