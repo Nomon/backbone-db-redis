@@ -15,7 +15,16 @@ Backbone.RedisDb = function(name, client) {
   }
 };
 
+Backbone.RedisDb.prototype.key = function(key) {
+  if(this.name == "") {
+    return key;
+  } else {
+    return this.name + ':' + key;
+  }
+};
+
 Backbone.RedisDb.sync = Db.sync
+
 
 _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   createClient: function() {
@@ -94,7 +103,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
         var setKey = self._getKey(model.collection, {});
         var modelKey = model.get(model.idAttribute);
         debug('adding model '+modelKey+" to "+setKey);
-        self.redis.zadd(setKey, Date.now(),modelKey, function(err, res) {
+        self.redis.sadd(setKey, modelKey, function(err, res) {
           callback(err, model.toJSON());
         });
       } else {
@@ -104,7 +113,8 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   }
 });
 
-
+Backbone.RedisDb.Set = require('./lib/set');
+Backbone.RedisDb.Hash = require('./lib/hash');
 module.exports = Backbone.RedisDb;
 
 
