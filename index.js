@@ -10,7 +10,6 @@ Backbone.RedisDb = function(name, client) {
   this.name = name || "";
   this.redis = client;
   if(!this.redis) {
-    debug('created default client');
     this.redis = redis.createClient();
   }
 };
