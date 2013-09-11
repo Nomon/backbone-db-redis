@@ -98,7 +98,6 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
 
     this.redis.set(key, JSON.stringify(model), function(err, res) {
       if(model.collection) {
-        console.log(model.collection);
         var setKey = self._getKey(model.collection, {});
         var modelKey = model.get(model.idAttribute);
         debug('adding model '+modelKey+" to "+setKey);
