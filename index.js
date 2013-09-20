@@ -111,8 +111,12 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   }
 });
 
-Backbone.RedisDb.Set = require('./lib/set');
-Backbone.RedisDb.Hash = require('./lib/hash');
+
+var types = require('./lib');
+Backbone.RedisDb.Set = types.Set;
+Backbone.RedisDb.SortedSet = types.SortedSet;
+Backbone.RedisDb.Hash = types.Hash;
+Backbone.RedisDb.List = types.List;
 module.exports = Backbone.RedisDb;
 
 
