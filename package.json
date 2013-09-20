@@ -36,6 +36,6 @@
   },
   "readmeFilename": "Readme.md",
   "bugs": {
-    "url": "https://github.com/Nomon/backbone-db/issues"
+    "url": "https://github.com/Nomon/backbone-db-redis/issues"
   }
 }
