@@ -32,6 +32,18 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       return redis.createClient(this.redis.port, this.redis.host);
     }
   },
+  _getKey: function (model, options) {
+    var key = '';
+
+    if(options.url) {
+      key = typeof options.url == "function" ? options.url() : options.url;
+    } else if(model.url) {
+      key = typeof model.url == "function" ? model.url() : model.url;
+    }  else if(model.id) {
+      key = model.id;
+    }
+    return this.name + (key ? ':' + key : '');
+  },
   findAll: function(model, options, callback) {
     debug('findAll '+model.url());
     options = options || {};
