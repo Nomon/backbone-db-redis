@@ -14,6 +14,10 @@
     "underscore": "~1.4.4",
     "redis": "~0.8.4",
     "debug": "~0.7.2",
-    "backbone-deferred": "git+ssh://git@github.com/Applifier/backbone-deferred.git"
+    "backbone-deferred": "git+ssh://git@github.com/Applifier/backbone-deferred.git",
+    "backbone-db": "~0.2.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.15.1"
   }
 }
