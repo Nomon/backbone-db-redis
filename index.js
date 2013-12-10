@@ -120,7 +120,35 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
         callback(err, model.toJSON());
       }
     });
-  }
+  },
+  destroy: function(model, options, callback) {
+    var self = this;
+    var key = this._getKey(model, options);
+    debug("DESTROY: " + key);
+    if (model.isNew()) {
+      return false;
+    }
+
+    function delKey() {
+      debug('removing key: ' + key);
+      self.redis.del(key, function(err, res) {
+        callback(err, res);
+      });
+    }
+
+    if(model.collection) {
+      var setKey = self._getKey(model.collection, {});
+      var modelKey = model.get(model.idAttribute);
+      debug('removing model ' + modelKey + " from " + setKey);
+      self.redis.srem(setKey, modelKey, function(err, res) {
+        if(err) return callback(err);
+        delKey();
+      });
+    } else {
+      debug('model has no collection specified');
+      delKey();
+    }
+  },
 });
 
 Backbone.RedisDb.Set = require('./lib/set');

@@ -32,5 +32,18 @@ describe('RedisDB', function() {
         });
       });
     });
+
+    it('should .destroy from store', function(t) {
+      var m = new MyModel({id:1, "asd":"das"});
+      m.db = store;
+      m.destroy({
+        success: function() {
+          t();
+        },
+        error: function() {
+          assert(false);
+        }
+      });
+    });
   });
 });

@@ -32,13 +32,18 @@ var testCol = new MyCollection();
 
 describe('RedisDB', function() {
   describe('#Collection', function() {
+    var testModel;
+
     it('should be able to create', function(t) {
       testCol.create({"id_check":1},{ wait: true }).done(function(m) {
           assert(m.get('id_check') == testCol.at(0).get('id_check'));
-          var m2 = new MyModel({id:1});
+          var m2 = new MyModel({id: m.id});
           m2.fetch().done(function() {
             assert(m.get('id_check') == m2.get('id_check'));
             t();
+          }).fail(function(err) {
+            console.error(err);
+            throw err;
           });
         }).fail(function(err) {
           throw err;
@@ -54,6 +59,7 @@ describe('RedisDB', function() {
     it('should have deferred .create', function(t) {
       var a = new MyCollection();
       a.create({data:"xyz"}).done(function(m) {
+        testModel = m;
         assert(m.get("data") == "xyz");
         t();
       });
@@ -65,5 +71,25 @@ describe('RedisDB', function() {
         t();
       });
     });
+
+    it('should remove model from collection', function(t) {
+      var testId = testModel.id;
+      testModel.destroy({
+        success: function() {
+          var a = new MyCollection();
+          a.fetch().done(function() {
+            var removedModel = a.where({id: testId});
+            assert(removedModel.length === 0);
+            t();
+          });
+
+        },
+        error: function(err) {
+          assert(false);
+          t();
+        }
+      });
+    });
+
   });
 });
