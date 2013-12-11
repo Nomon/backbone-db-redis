@@ -51,19 +51,13 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     if(model.model) {
       var m = new model.model();
       var modelKey = this._getKey(m, {});
-      var start = options.start || "0";
-      var end = options.end || "-1";
-      var key = this._getKey(model, {});
-      if(options.where) return query.queryModels(options, {db: this, model: model}, callback);
-      debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
-      this.redis.sort(collectionKey, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
-        if(res) {
-          res = res.map(function(data) {
-            return data && JSON.parse(data);
-          });
-        }
-        callback(err, res);
-      });
+      var dbOpts = {
+        db: this,
+        model: model,
+        modelKey: modelKey,
+        collectionKey: collectionKey
+      };
+      query.queryModels(options, dbOpts, callback);
     } else {
       this.redis.get(collectionKey, function(err, data) {
         data = data && JSON.parse(data);
