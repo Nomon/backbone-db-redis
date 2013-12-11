@@ -59,7 +59,7 @@ describe('RedisDB#Collection', function() {
           var removedModel = a.where({id: testId});
           assert(removedModel.length === 0);
           done();
-      });
+      }).otherwise(done);
     }).otherwise(done);
   });
 

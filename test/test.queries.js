@@ -35,7 +35,7 @@ describe('Query tests', function() {
         });
         assert(allHaveCorrectValue);
         done();
-      });
+      }).otherwise(done);
   });
 
 });
