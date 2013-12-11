@@ -3,7 +3,8 @@ var _ = require('underscore')
   , Db = require('backbone-db')
   , redis = require('redis')
   , debug = require('debug')('backbone-db-redis')
-  , indexing = require('./lib/indexing');
+  , indexing = require('./lib/indexing')
+  , query = require('./lib/query');
 
 
 Backbone.RedisDb = function(name, client) {
@@ -53,6 +54,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       var start = options.start || "0";
       var end = options.end || "-1";
       var key = this._getKey(model, {});
+      if(options.where) return query.queryModels(options, {db: this, model: model}, callback);
       debug("redis sort "+collectionKey+ ' BY nosort GET '+modelKey+':*');
       this.redis.sort(collectionKey, "BY", "nosort" ,"GET", modelKey+':*', function(err, res) {
         if(res) {
@@ -131,17 +133,19 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     function delKey() {
       debug('removing key: ' + key);
       self.redis.del(key, function(err, res) {
-        self._updateIndexes(model, _.extend({operation: 'delete'}, options), callback);
+        callback(err, model.toJSON());
       });
     }
 
     if(model.collection) {
       var setKey = self._getKey(model.collection, {});
       var modelKey = model.get(model.idAttribute);
-      debug('removing model ' + modelKey + " from " + setKey);
-      self.redis.srem(setKey, modelKey, function(err, res) {
-        if(err) return callback(err);
-        delKey();
+      this._updateIndexes(model, _.extend({operation: 'delete'}, options), function(err) {
+        debug('removing model ' + modelKey + " from " + setKey);
+        self.redis.srem(setKey, modelKey, function(err, res) {
+          if(err) return callback(err);
+          delKey();
+        });
       });
     } else {
       debug('model has no collection specified');
@@ -160,7 +164,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       data: model.attributes,
       prevData: operation === 'delete' ? model.attributes : model.changedAttributes(),
       operation: operation,
-      baseKey: model.type,
+      baseKey: model.collection ? model.collection.type : model.type,
       id: model.id
     };
     indexing.updateIndexes(indexingOpts, callback);

@@ -7,7 +7,7 @@ var redis = setup.store.redis;
 
 var collection = new setup.IndexedCollection();
 
-describe('Query tests', function() {
+describe('Indexing tests', function() {
   var testModel;
 
   before(function(done) {
@@ -22,8 +22,8 @@ describe('Query tests', function() {
 
   it('should check that specified indexes were created', function(done) {
     redis.keys('test:i:mymodel*', function(err, keys) {
-      assert(keys.indexOf('test:i:mymodel:value:1') > -1);
-      redis.smembers('test:i:mymodel:value:2', function(err, ids) {
+      assert(keys.indexOf('test:i:mymodels:value:1') > -1);
+      redis.smembers('test:i:mymodels:value:2', function(err, ids) {
         assert(ids.indexOf('2') > -1);
         assert(ids.indexOf('4') > -1);
         done();
@@ -31,7 +31,7 @@ describe('Query tests', function() {
     });
   });
 
-  it('should fetch matching models filtered with where operator', function(done) {
+  it('should fetch all models', function(done) {
     collection
       .fetch()
       .then(function() {
@@ -42,7 +42,7 @@ describe('Query tests', function() {
   it('should remove indexes when removing models', function(done) {
     function checkIndexes() {
       redis.keys('test:i:mymodel*', function(err, keys) {
-        assert(keys.indexOf('test:i:mymodel:value:1') === -1);
+        assert(keys.indexOf('test:i:mymodels:value:1') === -1);
         done();
       });
     }
@@ -60,9 +60,9 @@ describe('Query tests', function() {
   it('should remove reference to model in index after removing', function(done) {
     function checkIndexes() {
       redis.keys('test:i:mymodel*', function(err, keys) {
-        assert(keys.indexOf('test:i:mymodel:value:2') > -1);
-        assert(keys.indexOf('test:i:mymodel:name:b') === -1);
-        redis.smembers('test:i:mymodel:value:2', function(err, ids) {
+        assert(keys.indexOf('test:i:mymodels:value:2') > -1);
+        assert(keys.indexOf('test:i:mymodels:name:b') === -1);
+        redis.smembers('test:i:mymodels:value:2', function(err, ids) {
           assert(ids.indexOf('2') === -1);
           assert(ids.indexOf('4') > -1);
           done();
