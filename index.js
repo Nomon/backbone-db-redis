@@ -2,8 +2,8 @@ var _ = require('underscore')
   , Backbone = require('backbone')
   , Db = require('backbone-db')
   , redis = require('redis')
-  , debug = require('debug')('backbone-db-redis');
-
+  , debug = require('debug')('backbone-db-redis')
+  , indexing = require('./lib/indexing');
 
 
 Backbone.RedisDb = function(name, client) {
@@ -15,15 +15,14 @@ Backbone.RedisDb = function(name, client) {
 };
 
 Backbone.RedisDb.prototype.key = function(key) {
-  if(this.name == "") {
+  if(this.name === "") {
     return key;
   } else {
     return this.name + ':' + key;
   }
 };
 
-Backbone.RedisDb.sync = Db.sync
-
+Backbone.RedisDb.sync = Db.sync;
 
 _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   createClient: function() {
@@ -36,9 +35,9 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     var key = '';
 
     if(options.url) {
-      key = typeof options.url == "function" ? options.url() : options.url;
+      key = typeof options.url === "function" ? options.url() : options.url;
     } else if(model.url) {
-      key = typeof model.url == "function" ? model.url() : model.url;
+      key = typeof model.url === "function" ? model.url() : model.url;
     }  else if(model.id) {
       key = model.id;
     }
@@ -73,7 +72,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   find: function(model, options, callback) {
     var key = this._getKey(model, options);
 
-    debug('find: '+key);
+    debug('find: ' + key);
     this.redis.get(key, function(err, data) {
       data = data && JSON.parse(data);
       callback(err, data);
@@ -82,11 +81,11 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   create: function(model, options, callback) {
     var self = this;
     var key = this._getKey(model, options);
-    debug('Create '+key);
+    debug('create: ' + key);
     if (model.isNew()) {
       self.createId(model, options, function(err, id) {
         if(err || !id) {
-          return callback(err);
+          return callback(err || new Error('id is missing'));
         }
         model.set(model.idAttribute, id);
         self.update(model, options, callback);
@@ -114,10 +113,10 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
         var modelKey = model.get(model.idAttribute);
         debug('adding model '+modelKey+" to "+setKey);
         self.redis.sadd(setKey, modelKey, function(err, res) {
-          callback(err, model.toJSON());
+          self._updateIndexes(model, options, callback);
         });
       } else {
-        callback(err, model.toJSON());
+        self._updateIndexes(model, options, callback);
       }
     });
   },
@@ -132,7 +131,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     function delKey() {
       debug('removing key: ' + key);
       self.redis.del(key, function(err, res) {
-        callback(err, res);
+        self._updateIndexes(model, _.extend({operation: 'delete'}, options), callback);
       });
     }
 
@@ -149,6 +148,23 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       delKey();
     }
   },
+  _updateIndexes: function(model, options, callback) {
+    if(!model.indexedAttributes) {
+      debug('nothing to index');
+      return callback(null, model.toJSON());
+    }
+    var operation = options.operation || 'add';
+    var indexingOpts = {
+      db: this,
+      indexes: model.indexedAttributes,
+      data: model.attributes,
+      prevData: operation === 'delete' ? model.attributes : model.changedAttributes(),
+      operation: operation,
+      baseKey: model.type,
+      id: model.id
+    };
+    indexing.updateIndexes(indexingOpts, callback);
+  }
 });
 
 Backbone.RedisDb.Set = require('./lib/set');
