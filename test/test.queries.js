@@ -114,6 +114,19 @@ describe('Query tests', function() {
       }).otherwise(done);
   });
 
+  it('should fetch models with after_id', function(done) {
+    //TODO
+    var opts = {
+      after_id: 2,
+      sort: 'value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        done();
+      }).otherwise(done);
+  });
+
   it('should fetch models with combined options #1', function(done) {
     var opts = {
       where: {name: 'c'},
