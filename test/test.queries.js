@@ -67,7 +67,21 @@ describe('Query tests', function() {
       }).otherwise(done);
   });
 
-  it('should fetch models reverse sorted with value', function(done) {
+  it('should fetch models sorted with value in ascending order', function(done) {
+    var opts = {
+      sort: 'value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 4);
+        var values = collection.pluck('value');
+        assert(inAscendingOrder(values));
+        done();
+      }).otherwise(done);
+  });
+
+  it('should fetch models sorted with value in descending order', function(done) {
     var opts = {
       sort: '-value'
     };
@@ -81,4 +95,54 @@ describe('Query tests', function() {
       }).otherwise(done);
   });
 
+  it('should fetch models with combined options #1', function(done) {
+    var opts = {
+      where: {name: 'c'},
+      limit: 2,
+      offset: 0,
+      sort: 'value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 2);
+        var values = collection.pluck('value');
+        assert(inAscendingOrder(values));
+        done();
+      }).otherwise(done);
+  });
+
+  it('should fetch models with combined options #2', function(done) {
+    var opts = {
+      where: {name: 'c'},
+      limit: 2,
+      offset: 0,
+      sort: '-value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 2);
+        var values = collection.pluck('value');
+        assert(inDescendingOrder(values));
+        done();
+      }).otherwise(done);
+  });
+
+  it('should fetch models with combined options #3', function(done) {
+    var opts = {
+      where: {name: 'c'},
+      limit: 2,
+      offset: 1,
+      sort: 'value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 1);
+        var values = collection.pluck('value');
+        assert(values[0] === 3);
+        done();
+      }).otherwise(done);
+  });
 });
