@@ -52,6 +52,25 @@ describe('Query tests', function() {
       }).otherwise(done);
   });
 
+  it('should filter with multiple where options', function(done) {
+    var opts = {
+      where: {
+        value: 2,
+        name: 'b'
+      }
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 1);
+        var allHaveCorrectValue = collection.all(function(model) {
+          return model.get('value') === 2 && model.get('name') === 'b';
+        });
+        assert(allHaveCorrectValue);
+        done();
+      }).otherwise(done);
+  });
+
   it('should fetch models with limit & offset', function(done) {
     var opts = {
       limit: 2,
@@ -145,4 +164,22 @@ describe('Query tests', function() {
         done();
       }).otherwise(done);
   });
+
+  it('should fetch models with combined options #4', function(done) {
+    var opts = {
+      where: {name: 'c', value: 2},
+      limit: 2,
+      offset: 0,
+      sort: 'value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 1);
+        var values = collection.pluck('value');
+        assert(values[0] === 2);
+        done();
+      }).otherwise(done);
+  });
+
 });
