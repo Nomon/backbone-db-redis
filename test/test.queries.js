@@ -7,6 +7,20 @@ var redis = setup.store.redis;
 
 var collection = new setup.IndexedCollection();
 
+var inAscendingOrder = function(arr) {
+  var inOrder = _.every(arr, function(value, index) {
+    return index === 0 || arr[index - 1] <= value;
+  });
+  return inOrder;
+};
+
+var inDescendingOrder = function(arr) {
+  var inOrder = _.every(arr, function(value, index) {
+    return index === 0 || arr[index - 1] >= value;
+  });
+  return inOrder;
+};
+
 describe('Query tests', function() {
   var testModel;
 
@@ -61,6 +75,8 @@ describe('Query tests', function() {
       .fetch(opts)
       .then(function() {
         assert(collection.length === 4);
+        var values = collection.pluck('value');
+        assert(inDescendingOrder(values));
         done();
       }).otherwise(done);
   });
