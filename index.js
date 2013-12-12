@@ -55,7 +55,8 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
         db: this,
         model: model,
         modelKey: modelKey,
-        collectionKey: collectionKey
+        collectionKey: collectionKey,
+        indexes: m.indexes
       };
       query.queryModels(options, dbOpts, callback);
     } else {
@@ -147,14 +148,14 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     }
   },
   _updateIndexes: function(model, options, callback) {
-    if(!model.indexedAttributes) {
+    if(!model.indexes) {
       debug('nothing to index');
       return callback(null, model.toJSON());
     }
     var operation = options.operation || 'add';
     var indexingOpts = {
       db: this,
-      indexes: model.indexedAttributes,
+      indexes: model.indexes,
       data: model.attributes,
       prevData: operation === 'delete' ? model.attributes : model.changedAttributes(),
       operation: operation,

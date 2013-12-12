@@ -31,7 +31,10 @@ var MyCollection = exports.MyCollection = Collection.extend({
 });
 
 var IndexedModel = exports.IndexedModel = MyModel.extend({
-  indexedAttributes: ['value', 'name']
+  indexes: [
+    {property: 'value', sort: 'asc'},
+    {property: 'name'}
+  ]
 });
 
 var IndexedCollection = exports.IndexedCollection = MyCollection.extend({

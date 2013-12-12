@@ -38,4 +38,31 @@ describe('Query tests', function() {
       }).otherwise(done);
   });
 
+  it('should fetch models with limit & offset', function(done) {
+    var opts = {
+      limit: 2,
+      offset: 1,
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 2);
+        var m = collection.at(0);
+        assert(m.get('id') === 2);
+        done();
+      }).otherwise(done);
+  });
+
+  it('should fetch models reverse sorted with value', function(done) {
+    var opts = {
+      sort: '-value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 4);
+        done();
+      }).otherwise(done);
+  });
+
 });

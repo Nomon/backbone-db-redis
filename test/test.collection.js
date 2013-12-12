@@ -39,14 +39,7 @@ describe('RedisDB#Collection', function() {
         assert(collection.length === 1);
         assert(c.at(0));
         done();
-      });
-  });
-
-  it('should have deferred .fetch', function(done) {
-    var a = new MyCollection();
-    a.fetch().then(function() {
-      done();
-    });
+      }).otherwise(done);
   });
 
   it('should remove model from collection', function(done) {

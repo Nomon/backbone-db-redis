@@ -23,7 +23,7 @@ describe('Indexing tests', function() {
   it('should check that specified indexes were created', function(done) {
     redis.keys('test:i:mymodel*', function(err, keys) {
       assert(keys.indexOf('test:i:mymodels:value:1') > -1);
-      redis.smembers('test:i:mymodels:value:2', function(err, ids) {
+      redis.zrange('test:i:mymodels:value:2', 0, -1, function(err, ids) {
         assert(ids.indexOf('2') > -1);
         assert(ids.indexOf('4') > -1);
         done();
@@ -62,7 +62,7 @@ describe('Indexing tests', function() {
       redis.keys('test:i:mymodel*', function(err, keys) {
         assert(keys.indexOf('test:i:mymodels:value:2') > -1);
         assert(keys.indexOf('test:i:mymodels:name:b') === -1);
-        redis.smembers('test:i:mymodels:value:2', function(err, ids) {
+        redis.zrange('test:i:mymodels:value:2', 0, -1, function(err, ids) {
           assert(ids.indexOf('2') === -1);
           assert(ids.indexOf('4') > -1);
           done();
