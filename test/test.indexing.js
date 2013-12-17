@@ -57,6 +57,24 @@ describe('Indexing tests', function() {
       .otherwise(done);
   });
 
+  it('should update index when updating properties', function(done) {
+    var model = collection.findWhere({id: 3});
+    assert(model);
+    model.set('name', 'e');
+    model
+      .save()
+      .then(function() {
+        redis.keys('test:i:mymodel*', function(err, keys) {
+          assert(keys.indexOf('test:i:mymodels:name:e') > -1);
+          redis.smembers('test:i:mymodels:name:c', function(err, ids) {
+            assert(ids.indexOf('3') === -1);
+            assert(ids.indexOf('4') > -1);
+            done();
+          });
+        });
+      });
+  });
+
   it('should remove reference to model in index after removing', function(done) {
     function checkIndexes() {
       redis.keys('test:i:mymodel*', function(err, keys) {
