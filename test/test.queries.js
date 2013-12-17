@@ -213,6 +213,27 @@ describe('Query tests', function() {
         assert(ids.indexOf(3) > -1);
         done();
       }).otherwise(done);
-
   });
+
+  it('should query models with $in when combined with other filters', function(done) {
+    var opts = {
+      where: {
+        platforms: {
+          $in: 'android'
+        },
+        name: 'c'
+      },
+      sort: 'value'
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 1, 'query should return 1 model');
+        var ids = collection.pluck('id');
+        console.log(ids);
+        done();
+      }).otherwise(done);
+  });
+
+
 });
