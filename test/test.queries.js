@@ -195,4 +195,24 @@ describe('Query tests', function() {
       }).otherwise(done);
   });
 
+  it('should query models with $in', function(done) {
+    var opts = {
+      where: {
+        platforms: {
+          $in: 'android'
+        }
+      }
+    };
+    collection
+      .fetch(opts)
+      .then(function() {
+        assert(collection.length === 2, 'query should return 2 models');
+        var ids = collection.pluck('id');
+        assert(ids.indexOf(1) > -1);
+        assert(ids.indexOf(2) === -1);
+        assert(ids.indexOf(3) > -1);
+        done();
+      }).otherwise(done);
+
+  });
 });
