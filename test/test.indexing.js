@@ -23,10 +23,17 @@ describe('Indexing tests', function() {
   it('should check that specified indexes were created', function(done) {
     redis.keys('test:i:mymodel*', function(err, keys) {
       assert(keys.indexOf('test:i:mymodels:value:1') > -1);
+      assert(keys.indexOf('test:i:mymodels:platforms:android') > -1);
       redis.smembers('test:i:mymodels:value:2', function(err, ids) {
         assert(ids.indexOf('2') > -1);
         assert(ids.indexOf('4') > -1);
-        done();
+        redis.smembers('test:i:mymodels:platforms:ios', function(err, ids) {
+          assert(ids.length === 3);
+          assert(ids.indexOf('1') > -1);
+          assert(ids.indexOf('2') > -1);
+          assert(ids.indexOf('4') > -1);
+          done();
+        });
       });
     });
   });
@@ -83,7 +90,12 @@ describe('Indexing tests', function() {
         redis.smembers('test:i:mymodels:value:2', function(err, ids) {
           assert(ids.indexOf('2') === -1);
           assert(ids.indexOf('4') > -1);
-          done();
+          redis.smembers('test:i:mymodels:platforms:ios', function(err, ids) {
+            // 1 & 2 were deleted, only 4 should be left
+            assert(ids.length === 1);
+            assert(ids.indexOf('4') > -1);
+            done();
+          });
         });
       });
     }

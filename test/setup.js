@@ -33,7 +33,8 @@ var MyCollection = exports.MyCollection = Collection.extend({
 var IndexedModel = exports.IndexedModel = MyModel.extend({
   indexes: [
     {property: 'value', sort: 'asc'},
-    {property: 'name'}
+    {property: 'name'},
+    {property: 'platforms'}
   ]
 });
 
@@ -42,10 +43,10 @@ var IndexedCollection = exports.IndexedCollection = MyCollection.extend({
 });
 
 var fixtures = [
-  {id: 1, value: 1, name: 'a'},
-  {id: 2, value: 2, name: 'b'},
-  {id: 3, value: 3, name: 'c'},
-  {id: 4, value: 2, name: 'c'},
+  {id: 1, value: 1, name: 'a', platforms: ['android', 'ios']},
+  {id: 2, value: 2, name: 'b', platforms: ['ios']},
+  {id: 3, value: 3, name: 'c', platforms: ['android']},
+  {id: 4, value: 2, name: 'c', platforms: ['ios']},
 ];
 
 exports.insertFixtureData = function (collection, cb) {
