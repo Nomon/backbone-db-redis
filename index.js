@@ -147,6 +147,38 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       delKey();
     }
   },
+
+  addToIndex: function(collection, model, options, cb) {
+    var setKey = collection.indexKey;
+    var key = model.id;
+    debug('adding model ' + key + ' to ' + setKey);
+    if(collection.indexSort) {
+      this.redis.zadd(setKey, collection.indexSort(model), key, cb);
+    } else {
+      this.redis.sadd(setKey, key, function(err, res) {
+        cb(err, res);
+      });
+    }
+  },
+
+  readFromIndex: function(collection, options, cb) {
+    var done = function(err, keys) {
+      var models = [];
+      _.each(keys, function(id) {
+        models.push({id: id});
+      });
+      collection.set(models, options);
+      return cb(err, models);
+    };
+
+    var setKey = collection.indexKey;
+    var readFn = collection.indexSort
+      ? _.bind(this.redis.zrange, this.redis, setKey, 0, -1)
+      : _.bind(this.redis.smembers, this.redis, setKey);
+    debug('reading keys from: ' + setKey);
+    readFn(done);
+  },
+
   _updateIndexes: function(model, options, callback) {
     if(!model.indexes) {
       debug('nothing to index');

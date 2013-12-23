@@ -15,7 +15,8 @@
     "redis": "~0.8.4",
     "debug": "~0.7.2",
     "backbone-db": "~0.2.0",
-    "backbone-promises": "~0.1.6"
+    "backbone-promises": "~0.1.6",
+    "when": "~2.7.0"
   },
   "devDependencies": {
     "mocha": "~1.15.1"
