@@ -15,18 +15,59 @@ var TestCollection = MyCollection.extend({
     return Date.now();
   },
 
+  /**
+   * Adds a new model to the index. Only specified attribute is indexed.
+   * Db adapter returns a Promise
+   */
   addToIndex: function(model, options) {
     options = options ? _.clone(options) : {};
     if (!(model = this._prepareModel(model, options))) return false;
     if (!options.wait) this.add(model, options);
-    options.indexKey = this.indexKey;
-    return nodefn.call(_.bind(this.indexDb.addToIndex, this.indexDb), this, model, options);
+    return this._callAdapter('addToIndex', options, model);
   },
 
+  /**
+   * Read model ids from the index. Populates collection models with ids,
+   * for fetching from the main storage.
+   */
   readFromIndex: function(options) {
+    return this._callAdapter('readFromIndex', options);
+  },
+
+ /**
+   * Removes a model from index
+   */
+  removeFromIndex: function(models, options) {
+    if(!models) return false;
+    this.remove(models, options);
+    var singular = !_.isArray(models);
+    models = singular ? [models] : _.clone(models);
+    return this._callAdapter('removeFromIndex', options, models);
+  },
+
+  /**
+   *  Check if model exists in index
+   */
+  exists: function(model, options) {
+    return this._callAdapter('existsInIndex', options, model);
+  },
+
+  /**
+   * Get count of items in index
+   */
+  count: function(options) {
+    return this._callAdapter('indexCount', options);
+  },
+
+  _callAdapter: function(fn, options, models) {
     options = options ? _.clone(options) : {};
+    if(!this.indexDb) {
+      throw new Error('indexDb must be defined');
+    }
     options.indexKey = this.indexKey;
-    return nodefn.call(_.bind(this.indexDb.readFromIndex, this.indexDb), this, options);
+    var args = [this, options];
+    if(models) args.splice(1, 0, models);
+    return nodefn.apply(_.bind(this.indexDb[fn], this.indexDb), args);
   }
 });
 
@@ -64,6 +105,16 @@ describe('Test IndexedCollection', function () {
       }).otherwise(done);
   });
 
+  it('should get count from index', function(done) {
+    collection = new TestCollection();
+    collection
+      .count()
+      .then(function(count) {
+        assert.equal(count, 2);
+        done();
+      }).otherwise(done);
+  });
+
   it('should read ids from index', function(done) {
     collection = new TestCollection();
     collection
@@ -85,4 +136,38 @@ describe('Test IndexedCollection', function () {
         done();
       }).otherwise(done);
   });
+
+  it('should check that model exists in index', function(done) {
+    var model = collection.at(0);
+    assert(model);
+    collection
+      .exists(model)
+      .then(function(exists) {
+        assert.equal(exists, true);
+        done();
+      }).otherwise(done);
+  });
+
+  it('should remove model from index', function(done) {
+    var model = collection.at(0);
+    assert(model);
+    collection
+      .removeFromIndex(model)
+      .then(function() {
+        assert.equal(collection.length, 1);
+        done();
+      }).otherwise(done);
+  });
+
+  it('should check that model was removed from index', function(done) {
+    collection = new TestCollection();
+    collection
+      .readFromIndex()
+      .then(function() {
+        assert.equal(collection.length, 1);
+        assert(collection.at(0).get('data') !== 'aaa');
+        done();
+      }).otherwise(done);
+  });
+
 });

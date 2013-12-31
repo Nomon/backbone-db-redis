@@ -179,6 +179,44 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     readFn(done);
   },
 
+
+  removeFromIndex: function(collection, models, options, cb) {
+    var setKey = collection.indexKey;
+    var keys = _.pluck(models, models[0].idAttribute);
+    debug('removing key: ' + keys +' from: ' + setKey);
+    if(collection.indexSort) {
+      this.redis.zrem(setKey, keys, cb);
+    } else {
+      this.redis.srem(setKey, keys, cb);
+    }
+  },
+
+  existsInIndex: function(collection, model, options, cb) {
+    var setKey = collection.indexKey;
+    var key = model.id;
+    debug('check existance for: ' + key + ' in: ' + setKey);
+
+    function done(err, rank) {
+      cb(err, rank !== null);
+    }
+
+    if(collection.indexSort) {
+      this.redis.zrank(setKey, key, done);
+    } else {
+      this.redis.sismember(setKey, key, cb);
+    }
+  },
+
+  indexCount: function(collection, options, cb) {
+    var setKey = collection.indexKey;
+    debug('get count for: ' + setKey);
+    if(collection.indexSort) {
+      this.redis.zcard(setKey, cb);
+    } else {
+      this.redis.scard(setKey, cb);
+    }
+  },
+
   _updateIndexes: function(model, options, callback) {
     if(!model.indexes) {
       debug('nothing to index');
