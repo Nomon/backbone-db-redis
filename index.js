@@ -204,7 +204,9 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     if(collection.indexSort) {
       this.redis.zrank(setKey, key, done);
     } else {
-      this.redis.sismember(setKey, key, cb);
+      this.redis.sismember(setKey, key, function(err, isMember) {
+        cb(err, isMember === 1);
+      });
     }
   },
 
