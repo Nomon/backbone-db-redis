@@ -183,11 +183,12 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   removeFromIndex: function(collection, models, options, cb) {
     var setKey = collection.indexKey;
     var keys = _.pluck(models, models[0].idAttribute);
+    var cmd = [setKey].concat(keys);
     debug('removing key: ' + keys +' from: ' + setKey);
     if(collection.indexSort) {
-      this.redis.zrem(setKey, keys, cb);
+      this.redis.zrem(cmd, cb);
     } else {
-      this.redis.srem(setKey, keys, cb);
+      this.redis.srem(cmd, cb);
     }
   },
 

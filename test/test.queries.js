@@ -229,8 +229,7 @@ describe('Query tests', function() {
       .fetch(opts)
       .then(function() {
         assert(collection.length === 1, 'query should return 1 model');
-        var ids = collection.pluck('id');
-        console.log(ids);
+        assert.equal(collection.at(0).get('name'), 'c');
         done();
       }).otherwise(done);
   });
