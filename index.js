@@ -220,6 +220,10 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     }
   },
 
+  findKeys: function(collection, options, cb) {
+    this.redis.keys(options.keys + '*', cb);
+  },
+
   _updateIndexes: function(model, options, callback) {
     if(!model.indexes) {
       debug('nothing to index');

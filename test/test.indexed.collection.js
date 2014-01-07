@@ -59,6 +59,11 @@ var TestCollection = MyCollection.extend({
     return this._callAdapter('indexCount', options);
   },
 
+  findKeys: function(keys) {
+    var options = {keys: keys};
+    return this._callAdapter('findKeys', options);
+  },
+
   _callAdapter: function(fn, options, models) {
     options = options ? _.clone(options) : {};
     if(!this.indexDb) {
@@ -144,6 +149,15 @@ describe('Test IndexedCollection', function () {
       .exists(model)
       .then(function(exists) {
         assert.equal(exists, true);
+        done();
+      }).otherwise(done);
+  });
+
+  it('should fetch keys starting with given string', function(done) {
+    collection
+      .findKeys('test:i:Foo:')
+      .then(function(keys) {
+        assert.equal(keys.length, 1);
         done();
       }).otherwise(done);
   });
