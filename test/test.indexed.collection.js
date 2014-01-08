@@ -59,8 +59,9 @@ var TestCollection = MyCollection.extend({
     return this._callAdapter('indexCount', options);
   },
 
-  findKeys: function(keys) {
-    var options = {keys: keys};
+  findKeys: function(keys, options) {
+    options = options ? _.clone(options) : {};
+    options.keys = keys;
     return this._callAdapter('findKeys', options);
   },
 
@@ -155,7 +156,7 @@ describe('Test IndexedCollection', function () {
 
   it('should fetch keys starting with given string', function(done) {
     collection
-      .findKeys('test:i:Foo:')
+      .findKeys('i:Foo:')
       .then(function(keys) {
         assert.equal(keys.length, 1);
         done();
