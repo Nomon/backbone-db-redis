@@ -3,6 +3,7 @@ var _ = require('underscore');
 var Promises = require('backbone-promises');
 
 var setup = require('./setup');
+var IndexedModel = setup.IndexedModel;
 var redis = setup.store.redis;
 
 var collection = new setup.IndexedCollection();
@@ -108,5 +109,40 @@ describe('Indexing tests', function() {
         checkIndexes();
       })
       .otherwise(done);
+  });
+
+  it('should create indexes when model\'s collection is not defined', function(done) {
+    function checkIndexes() {
+      redis.keys('test:i:mymodel*', function(err, keys) {
+        assert(keys.indexOf('test:i:mymodels:name:x') > -1);
+        done();
+      });
+    }
+    var model = new IndexedModel({id: 7, value: 9, name: 'x', platforms: ['xx']});
+    model
+      .save()
+      .then(function() {
+        checkIndexes();
+      }).otherwise(done);
+  });
+
+  it('should remove reference to model in index after removing a model without collection defined', function(done) {
+    function checkIndexes() {
+      redis.keys('test:i:mymodel*', function(err, keys) {
+        assert(keys.indexOf('test:i:mymodels:name:x') === -1);
+        done();
+      });
+    }
+
+    var model = new IndexedModel({id: 7});
+    model
+      .fetch()
+      .then(function() {
+        model
+          .destroy()
+          .then(function() {
+            checkIndexes();
+          }).otherwise(done);
+      }).otherwise(done);
   });
 });

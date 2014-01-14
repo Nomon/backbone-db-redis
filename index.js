@@ -132,20 +132,20 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       });
     }
 
-    if(model.collection) {
-      var setKey = self._getKey(model.collection, {});
-      var modelKey = model.get(model.idAttribute);
-      this._updateIndexes(model, _.extend({operation: 'delete'}, options), function(err) {
+    this._updateIndexes(model, _.extend({operation: 'delete'}, options), function(err) {
+      if(model.collection) {
+        var setKey = self._getKey(model.collection, {});
+        var modelKey = model.get(model.idAttribute);
         debug('removing model ' + modelKey + " from " + setKey);
         self.redis.srem(setKey, modelKey, function(err, res) {
           if(err) return callback(err);
           delKey();
         });
-      });
-    } else {
-      debug('model has no collection specified');
-      delKey();
-    }
+      } else {
+        debug('model has no collection specified');
+        delKey();
+      }
+    });
   },
 
   addToIndex: function(collection, model, options, cb) {
