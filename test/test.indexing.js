@@ -146,11 +146,29 @@ describe('Indexing tests', function() {
       }).otherwise(done);
   });
 
+  it('should not index model if dependency is not set', function(done) {
+    function checkIndexes() {
+      redis.keys('test:z:mymodel*', function(err, keys) {
+        var key = 'test:z:mymodels:featured';
+        assert(keys.indexOf(key) === -1);
+        done();
+      });
+    }
+
+    var model = new setup.IndexedByDateModel();
+    model
+      .save()
+      .then(function() {
+        checkIndexes();
+      }).otherwise(done);
+
+  });
+
   it('should index model, with score by date added', function(done) {
     function checkIndexes() {
       redis.keys('test:z:mymodel*', function(err, keys) {
         var key = 'test:z:mymodels:featured';
-        assert(keys.indexOf(key) > -1);
+        assert(keys.indexOf(key) > -1, 'model should not be added to featured index when attribute is not set');
         redis.zrange(key, 0, -1, function(err, ids) {
           assert.equal(ids.length, 1);
           done();
@@ -158,7 +176,7 @@ describe('Indexing tests', function() {
       });
     }
 
-    var model = new setup.IndexedByDateModel();
+    var model = new setup.IndexedByDateModel({featured: true});
     model
       .save()
       .then(function() {

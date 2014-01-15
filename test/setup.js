@@ -56,6 +56,13 @@ var IndexedByDateModel = exports.IndexedByDateModel = MyModel.extend({
       sort: function() {
         return Date.now();
       },
+      dependencies: [
+        {
+          // add to index if attribute "featured" is set to true
+          attribute: 'featured',
+          value: true
+        }
+      ],
       key: 'z:mymodels:featured'
     }
   ]

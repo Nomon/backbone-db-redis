@@ -39,6 +39,13 @@ var MyModel = Model.extend({
       sort: function() {
         return Date.now();
       },
+      dependencies: [
+        {
+          // add to index if attribute "featured" is set to true
+          attribute: 'featured',
+          value: true
+        }
+      ],
       key: 'z:mymodels:featured'
     }
   ]
@@ -53,6 +60,10 @@ Model's attribute to be indexed
 ### sort
 
 If defined attribute index is stored in sorted set. If defined as function, score will be calculated with given function. If not defined attribute is indexed in unordered set.
+
+### dependencies
+
+Index attribute only if defined dependencies are met.
 
 ### key
 
