@@ -145,4 +145,24 @@ describe('Indexing tests', function() {
           }).otherwise(done);
       }).otherwise(done);
   });
+
+  it('should index model, with score by date added', function(done) {
+    function checkIndexes() {
+      redis.keys('test:z:mymodel*', function(err, keys) {
+        var key = 'test:z:mymodels:featured';
+        assert(keys.indexOf(key) > -1);
+        redis.zrange(key, 0, -1, function(err, ids) {
+          assert.equal(ids.length, 1);
+          done();
+        });
+      });
+    }
+
+    var model = new setup.IndexedByDateModel();
+    model
+      .save()
+      .then(function() {
+        checkIndexes();
+      }).otherwise(done);
+  });
 });

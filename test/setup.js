@@ -49,6 +49,18 @@ var fixtures = [
   {id: 4, value: 2, name: 'c', platforms: ['ios']},
 ];
 
+var IndexedByDateModel = exports.IndexedByDateModel = MyModel.extend({
+  indexes: [
+    {
+      property: 'id',
+      sort: function() {
+        return Date.now();
+      },
+      key: 'z:mymodels:featured'
+    }
+  ]
+});
+
 exports.insertFixtureData = function (collection, cb) {
   var fns = [];
   _.each(fixtures, function(row) {
