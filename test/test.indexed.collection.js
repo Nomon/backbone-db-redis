@@ -133,9 +133,15 @@ describe('Test IndexedCollection', function () {
   });
 
   it('should fetch models', function(done) {
-    collection = new TestCollection();
+    var fetchOpts = {
+      where: {
+        ids: {
+          $in: collection.pluck('id')
+        }
+      }
+    };
     collection
-      .fetch()
+      .fetch(fetchOpts)
       .then(function() {
         assert.equal(collection.length, 2);
         assert.equal(collection.at(0).get('data'), 'aaa');

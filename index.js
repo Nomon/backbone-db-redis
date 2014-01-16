@@ -45,8 +45,8 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     return this.name + (key ? ':' + key : '');
   },
   findAll: function(model, options, callback) {
-    debug('findAll '+model.url());
     options = options || {};
+    debug('findAll ' + model.url());
     var collectionKey = this._getKey(model, options);
     if(model.model) {
       var m = new model.model();
