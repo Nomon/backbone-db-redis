@@ -135,7 +135,7 @@ describe('Test IndexedCollection', function () {
   it('should fetch models', function(done) {
     var fetchOpts = {
       where: {
-        ids: {
+        id: {
           $in: collection.pluck('id')
         }
       }
