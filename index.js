@@ -173,7 +173,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
 
     var setKey = collection.indexKey;
     var readFn = collection.indexSort
-      ? _.bind(this.redis.zrange, this.redis, setKey, 0, -1)
+      ? _.bind(this.redis.zrevrange, this.redis, setKey, 0, -1)
       : _.bind(this.redis.smembers, this.redis, setKey);
     debug('reading keys from: ' + setKey);
     readFn(done);

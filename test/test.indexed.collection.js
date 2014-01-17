@@ -12,7 +12,7 @@ var TestCollection = MyCollection.extend({
   indexDb: store,
   indexKey: 'test:i:Foo:relation',
   indexSort: function(model) {
-    return Date.now();
+    return model.get('score');
   },
 
   /**
@@ -83,8 +83,9 @@ describe('Test IndexedCollection', function () {
   before(function(done) {
     collection = new TestCollection();
     var fns = [
-      collection.create({data: 'aaa'}),
-      collection.create({data: 'bbb'})
+      collection.create({data: 'aaa', score: 22}),
+      collection.create({data: 'bbb', score: 1}),
+      collection.create({data: 'ccc', score: 99})
     ];
     when.all(fns).then(function() {
       done();
@@ -111,12 +112,21 @@ describe('Test IndexedCollection', function () {
       }).otherwise(done);
   });
 
+  it('should index another item', function(done) {
+    collection
+      .addToIndex(collection.at(2))
+      .then(function() {
+        done();
+      }).otherwise(done);
+  });
+
+
   it('should get count from index', function(done) {
     collection = new TestCollection();
     collection
       .count()
       .then(function(count) {
-        assert.equal(count, 2);
+        assert.equal(count, 3);
         done();
       }).otherwise(done);
   });
@@ -126,8 +136,8 @@ describe('Test IndexedCollection', function () {
     collection
       .readFromIndex()
       .then(function() {
-        assert.equal(collection.length, 2);
-        assert.equal(collection.pluck('id').length, 2);
+        assert.equal(collection.length, 3);
+        assert.equal(collection.pluck('id').length, 3);
         done();
       }).otherwise(done);
   });
@@ -143,8 +153,9 @@ describe('Test IndexedCollection', function () {
     collection
       .fetch(fetchOpts)
       .then(function() {
-        assert.equal(collection.length, 2);
-        assert.equal(collection.at(0).get('data'), 'aaa');
+        assert.equal(collection.length, 3);
+        assert.equal(collection.at(0).get('data'), 'ccc');
+        assert.equal(collection.at(1).get('data'), 'aaa');
         done();
       }).otherwise(done);
   });
@@ -175,7 +186,7 @@ describe('Test IndexedCollection', function () {
     collection
       .removeFromIndex(model)
       .then(function() {
-        assert.equal(collection.length, 1);
+        assert.equal(collection.length, 2);
         done();
       }).otherwise(done);
   });
@@ -185,8 +196,8 @@ describe('Test IndexedCollection', function () {
     collection
       .readFromIndex()
       .then(function() {
-        assert.equal(collection.length, 1);
-        assert(collection.at(0).get('data') !== 'aaa');
+        assert.equal(collection.length, 2);
+        assert(collection.at(0).get('data') !== 'ccc');
         done();
       }).otherwise(done);
   });
