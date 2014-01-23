@@ -136,6 +136,32 @@ describe('Test IndexedCollection', function () {
       }).otherwise(done);
   });
 
+  it('should read ids with given score options', function(done) {
+    var opts = {
+      score: {
+        min: 22,
+        max: 999,
+        // defines how to format scores into model
+        conversion: {
+          fn: function(score) {
+            return score;
+          },
+          attribute: 'score'
+        }
+      },
+      limit: 2,
+      offset: 1
+    };
+    collection = new TestCollection();
+    collection
+      .readFromIndex(opts)
+      .then(function() {
+        assert.equal(collection.length, 1);
+        assert.equal(collection.at(0).get('score'), '22');
+        done();
+      }).otherwise(done);
+  });
+
   it('should read ids from index', function(done) {
     collection = new TestCollection();
     collection

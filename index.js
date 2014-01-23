@@ -162,19 +162,47 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   },
 
   readFromIndex: function(collection, options, cb) {
-    var done = function(err, keys) {
+    var self = this;
+    var setKey = collection.indexKey;
+
+    var done = function(err, data) {
       var models = [];
-      _.each(keys, function(id) {
-        models.push({id: id});
-      });
+      var i = 0;
+      while (i < data.length) {
+        var modelData = {id: data[i]};
+        i ++;
+        if(options.score && options.score.conversion) {
+          var score = options.score.conversion.fn(data[i]);
+          modelData[options.score.conversion.attribute] = score;
+          i ++;
+        }
+        models.push(modelData);
+      }
       collection.set(models, options);
       return cb(err, models);
     };
 
-    var setKey = collection.indexKey;
-    var readFn = collection.indexSort
-      ? _.bind(this.redis.zrevrange, this.redis, setKey, 0, -1)
-      : _.bind(this.redis.smembers, this.redis, setKey);
+    var getReadFn = function() {
+      if(collection.indexSort) {
+        var min = '-inf';
+        var max = '+inf';
+        if(options.score) {
+          min = options.score.min || min;
+          max = options.score.max || max;
+          var params = [setKey, max, min];
+          if(options.score.conversion) params.push('WITHSCORES');
+          if(options.limit || options.offset) {
+            params = params.concat(['LIMIT', options.offset || 0, options.limit || -1]);
+          }
+          return _.bind.apply(null, [self.redis.zrevrangebyscore, self.redis].concat(params));
+        } else {
+          return _.bind(self.redis.zrevrange, self.redis, setKey, options.offset || 0, options.limit || -1);
+        }
+      }
+      return _.bind(self.redis.smembers, self.redis, setKey);
+    };
+
+    var readFn = getReadFn();
     debug('reading keys from: ' + setKey);
     readFn(done);
   },
