@@ -179,7 +179,6 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     readFn(done);
   },
 
-
   removeFromIndex: function(collection, models, options, cb) {
     var setKey = collection.indexKey;
     var keys = _.pluck(models, models[0].idAttribute);
@@ -190,6 +189,12 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     } else {
       this.redis.srem(cmd, cb);
     }
+  },
+
+  // removes the index completely
+  removeIndex: function(collection, options, cb) {
+    var setKey = collection.indexKey;
+    this.redis.del(setKey, cb);
   },
 
   existsInIndex: function(collection, model, options, cb) {

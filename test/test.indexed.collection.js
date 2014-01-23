@@ -3,6 +3,7 @@ var _ = require('underscore');
 var nodefn = require('when/node/function');
 var Promises = require('backbone-promises');
 var when = Promises.when;
+var sequence = require('when/sequence');
 var setup = require('./setup');
 var MyCollection = setup.MyCollection;
 var MyModel = setup.MyModel;
@@ -43,6 +44,10 @@ var TestCollection = MyCollection.extend({
     var singular = !_.isArray(models);
     models = singular ? [models] : _.clone(models);
     return this._callAdapter('removeFromIndex', options, models);
+  },
+
+  destroyAll: function(options) {
+    return this._callAdapter('removeIndex', options);
   },
 
   /**
@@ -198,6 +203,19 @@ describe('Test IndexedCollection', function () {
       .then(function() {
         assert.equal(collection.length, 2);
         assert(collection.at(0).get('data') !== 'ccc');
+        done();
+      }).otherwise(done);
+  });
+
+  it('should remove index', function(done) {
+    collection = new TestCollection();
+    var fns = [
+      _.bind(collection.destroyAll, collection),
+      _.bind(collection.readFromIndex, collection)
+    ];
+    sequence(fns)
+      .then(function() {
+        assert.equal(collection.length, 0);
         done();
       }).otherwise(done);
   });
