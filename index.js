@@ -163,8 +163,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
 
   readFromIndex: function(collection, options, cb) {
     var self = this;
-    var setKey = collection.indexKey;
-
+    var setKey = options.indexKey || collection.indexKey;
     var done = function(err, data) {
       var models = [];
       var i = 0;
@@ -205,6 +204,26 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     var readFn = getReadFn();
     debug('reading keys from: ' + setKey);
     readFn(done);
+  },
+
+  /**
+   * Read from multiple sets, storing union in new set temporarily
+   */
+  readFromIndexes: function(collection, options, cb) {
+    var self = this;
+    var unionKey = options.unionKey;
+    var params = _.clone(options.indexKeys);
+    if(collection.indexSort) params.unshift(options.indexKeys.length); // how many keys to union
+    params.unshift(unionKey); // where to store
+
+    var unionFn = collection.indexSort ?
+      _.bind(this.redis.zunionstore, this.redis) :
+      _.bind(this.redis.sunionstore, this.redis);
+    unionFn(params, function(err) {
+      self.redis.expire(unionKey, 300);
+      options.indexKey = unionKey;
+      return self.readFromIndex(collection, options, cb);
+    });
   },
 
   removeFromIndex: function(collection, models, options, cb) {
