@@ -118,6 +118,9 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     });
   },
   destroy: function(model, options, callback) {
+    // force wait option, since otherwise Backbone removes Model's reference to collection
+    // which is required for clearing indexes
+    options.wait = true;
     var self = this;
     var key = this._getKey(model, options);
     debug("DESTROY: " + key);
