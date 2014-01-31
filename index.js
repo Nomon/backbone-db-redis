@@ -32,6 +32,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       return redis.createClient(this.redis.port, this.redis.host);
     }
   },
+
   _getKey: function (model, options) {
     var key = '';
 
@@ -44,6 +45,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     }
     return this.name + (key ? ':' + key : '');
   },
+
   findAll: function(model, options, callback) {
     options = options || {};
     debug('findAll ' + model.url());
@@ -66,6 +68,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       });
     }
   },
+
   find: function(model, options, callback) {
     var key = this._getKey(model, options);
 
@@ -75,6 +78,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       callback(err, data);
     });
   },
+
   create: function(model, options, callback) {
     var self = this;
     var key = this._getKey(model, options);
@@ -91,11 +95,14 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       self.update(model, options, callback);
     }
   },
+
   createId: function(model, options, callback) {
+    if(model.createId) return model.createId(callback);
     var key = this._getKey(model, options);
     key += ':ids';
     this.redis.incr(key, callback);
   },
+
   update: function(model, options, callback) {
     var key = this._getKey(model, options);
     var self = this;
@@ -117,6 +124,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       }
     });
   },
+
   destroy: function(model, options, callback) {
     // force wait option, since otherwise Backbone removes Model's reference to collection
     // which is required for clearing indexes
