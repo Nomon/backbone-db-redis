@@ -3,6 +3,7 @@ var _ = require('underscore');
 var nodefn = require('when/node/function');
 var Promises = require('backbone-promises');
 var when = Promises.when;
+var sequence = require('when/sequence');
 var setup = require('./setup');
 var MyCollection = setup.MyCollection;
 var MyModel = setup.MyModel;
@@ -11,6 +12,7 @@ var store = setup.store;
 var TestCollection = MyCollection.extend({
   indexDb: store,
   indexKey: 'test:i:Foo:relation',
+
   indexSort: function(model) {
     return model.get('score');
   },
@@ -34,7 +36,18 @@ var TestCollection = MyCollection.extend({
     return this._callAdapter('readFromIndex', options);
   },
 
- /**
+  /**
+   * Read from multiple indexes
+   */
+  readFromIndexes: function(options) {
+    options = options ? _.clone(options) : {};
+    options.indexKeys = this.indexKeys || options.indexKeys;
+    options.unionKey = this.unionKey || options.unionKey;
+    var args = [this, options];
+    return nodefn.apply(_.bind(this.indexDb.readFromIndexes, this.indexDb), args);
+  },
+
+  /**
    * Removes a model from index
    */
   removeFromIndex: function(models, options) {
@@ -43,6 +56,10 @@ var TestCollection = MyCollection.extend({
     var singular = !_.isArray(models);
     models = singular ? [models] : _.clone(models);
     return this._callAdapter('removeFromIndex', options, models);
+  },
+
+  destroyAll: function(options) {
+    return this._callAdapter('removeIndex', options);
   },
 
   /**
@@ -77,8 +94,13 @@ var TestCollection = MyCollection.extend({
   }
 });
 
+var TestCollection2 = TestCollection.extend({
+  indexKey: 'test:i:Foo:relation2'
+});
+
 describe('Test IndexedCollection', function () {
   var collection;
+  var collection2;
 
   before(function(done) {
     collection = new TestCollection();
@@ -131,6 +153,32 @@ describe('Test IndexedCollection', function () {
       }).otherwise(done);
   });
 
+  it('should read ids with given score options', function(done) {
+    var opts = {
+      score: {
+        min: 22,
+        max: 999,
+        // defines how to format scores into model
+        conversion: {
+          fn: function(score) {
+            return score;
+          },
+          attribute: 'score'
+        }
+      },
+      limit: 2,
+      offset: 1
+    };
+    collection = new TestCollection();
+    collection
+      .readFromIndex(opts)
+      .then(function() {
+        assert.equal(collection.length, 1);
+        assert.equal(collection.at(0).get('score'), '22');
+        done();
+      }).otherwise(done);
+  });
+
   it('should read ids from index', function(done) {
     collection = new TestCollection();
     collection
@@ -160,6 +208,50 @@ describe('Test IndexedCollection', function () {
       }).otherwise(done);
   });
 
+  it('should add item to another index', function(done) {
+    collection2 = new  TestCollection2();
+    collection2
+      .create({data: 'ddd', score: 22})
+      .then(function(m) {
+        collection2
+          .addToIndex(m)
+          .then(function() {
+            done();
+          }).otherwise(done);
+      }).otherwise(done);
+  });
+
+  it('should read from multiple indexes', function(done) {
+    var opts = {
+      indexKeys: ['test:i:Foo:relation', 'test:i:Foo:relation2'],
+      unionKey: 'test:i:UnionFoo'
+    };
+    collection2 = new  TestCollection2();
+    collection2
+      .readFromIndexes(opts)
+      .then(function() {
+        assert.equal(collection2.length, 4);
+        done();
+      }).otherwise(done);
+  });
+
+  it('should fetch models', function(done) {
+    var fetchOpts = {
+      where: {
+        id: {
+          $in: collection2.pluck('id')
+        }
+      }
+    };
+    collection2
+      .fetch(fetchOpts)
+      .then(function() {
+        assert.equal(collection2.length, 4);
+        assert(collection2.findWhere({data: 'ddd'}));
+        done();
+      }).otherwise(done);
+  });
+
   it('should check that model exists in index', function(done) {
     var model = collection.at(0);
     assert(model);
@@ -175,7 +267,7 @@ describe('Test IndexedCollection', function () {
     collection
       .findKeys('i:Foo:')
       .then(function(keys) {
-        assert.equal(keys.length, 1);
+        assert.equal(keys.length, 2);
         done();
       }).otherwise(done);
   });
@@ -198,6 +290,19 @@ describe('Test IndexedCollection', function () {
       .then(function() {
         assert.equal(collection.length, 2);
         assert(collection.at(0).get('data') !== 'ccc');
+        done();
+      }).otherwise(done);
+  });
+
+  it('should remove index', function(done) {
+    collection = new TestCollection();
+    var fns = [
+      _.bind(collection.destroyAll, collection),
+      _.bind(collection.readFromIndex, collection)
+    ];
+    sequence(fns)
+      .then(function() {
+        assert.equal(collection.length, 0);
         done();
       }).otherwise(done);
   });

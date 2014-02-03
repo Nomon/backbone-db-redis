@@ -103,6 +103,7 @@ describe('Indexing tests', function() {
 
     var model = collection.findWhere({id: 2});
     assert(model);
+    assert(model.collection);
     model
       .destroy()
       .then(function() {

@@ -32,6 +32,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       return redis.createClient(this.redis.port, this.redis.host);
     }
   },
+
   _getKey: function (model, options) {
     var key = '';
 
@@ -44,6 +45,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     }
     return this.name + (key ? ':' + key : '');
   },
+
   findAll: function(model, options, callback) {
     options = options || {};
     debug('findAll ' + model.url());
@@ -66,6 +68,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       });
     }
   },
+
   find: function(model, options, callback) {
     var key = this._getKey(model, options);
 
@@ -75,6 +78,7 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       callback(err, data);
     });
   },
+
   create: function(model, options, callback) {
     var self = this;
     var key = this._getKey(model, options);
@@ -91,11 +95,14 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       self.update(model, options, callback);
     }
   },
+
   createId: function(model, options, callback) {
+    if(model.createId) return model.createId(callback);
     var key = this._getKey(model, options);
     key += ':ids';
     this.redis.incr(key, callback);
   },
+
   update: function(model, options, callback) {
     var key = this._getKey(model, options);
     var self = this;
@@ -117,7 +124,11 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
       }
     });
   },
+
   destroy: function(model, options, callback) {
+    // force wait option, since otherwise Backbone removes Model's reference to collection
+    // which is required for clearing indexes
+    options.wait = true;
     var self = this;
     var key = this._getKey(model, options);
     debug("DESTROY: " + key);
@@ -162,23 +173,69 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
   },
 
   readFromIndex: function(collection, options, cb) {
-    var done = function(err, keys) {
+    var self = this;
+    var setKey = options.indexKey || collection.indexKey;
+    var done = function(err, data) {
       var models = [];
-      _.each(keys, function(id) {
-        models.push({id: id});
-      });
+      var i = 0;
+      while (i < data.length) {
+        var modelData = {id: data[i]};
+        i ++;
+        if(options.score && options.score.conversion) {
+          var score = options.score.conversion.fn(data[i]);
+          modelData[options.score.conversion.attribute] = score;
+          i ++;
+        }
+        models.push(modelData);
+      }
       collection.set(models, options);
       return cb(err, models);
     };
 
-    var setKey = collection.indexKey;
-    var readFn = collection.indexSort
-      ? _.bind(this.redis.zrevrange, this.redis, setKey, 0, -1)
-      : _.bind(this.redis.smembers, this.redis, setKey);
+    var getReadFn = function() {
+      if(collection.indexSort) {
+        var min = '-inf';
+        var max = '+inf';
+        if(options.score) {
+          min = options.score.min || min;
+          max = options.score.max || max;
+          var params = [setKey, max, min];
+          if(options.score.conversion) params.push('WITHSCORES');
+          if(options.limit || options.offset) {
+            params = params.concat(['LIMIT', options.offset || 0, options.limit || -1]);
+          }
+          return _.bind.apply(null, [self.redis.zrevrangebyscore, self.redis].concat(params));
+        } else {
+          return _.bind(self.redis.zrevrange, self.redis, setKey, options.offset || 0, options.limit || -1);
+        }
+      }
+      return _.bind(self.redis.smembers, self.redis, setKey);
+    };
+
+    var readFn = getReadFn();
     debug('reading keys from: ' + setKey);
     readFn(done);
   },
 
+  /**
+   * Read from multiple sets, storing union in new set temporarily
+   */
+  readFromIndexes: function(collection, options, cb) {
+    var self = this;
+    var unionKey = options.unionKey;
+    var params = _.clone(options.indexKeys);
+    if(collection.indexSort) params.unshift(options.indexKeys.length); // how many keys to union
+    params.unshift(unionKey); // where to store
+
+    var unionFn = collection.indexSort ?
+      _.bind(this.redis.zunionstore, this.redis) :
+      _.bind(this.redis.sunionstore, this.redis);
+    unionFn(params, function(err) {
+      self.redis.expire(unionKey, 300);
+      options.indexKey = unionKey;
+      return self.readFromIndex(collection, options, cb);
+    });
+  },
 
   removeFromIndex: function(collection, models, options, cb) {
     var setKey = collection.indexKey;
@@ -190,6 +247,12 @@ _.extend(Backbone.RedisDb.prototype, Db.prototype, {
     } else {
       this.redis.srem(cmd, cb);
     }
+  },
+
+  // removes the index completely
+  removeIndex: function(collection, options, cb) {
+    var setKey = collection.indexKey;
+    this.redis.del(setKey, cb);
   },
 
   existsInIndex: function(collection, model, options, cb) {
